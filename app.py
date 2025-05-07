@@ -10,7 +10,7 @@ float_init()
 def initialize_session_state():
     if "messages" not in st.session_state:
         st.session_state.messages = [
-            {"role": "assistant", "content": "Hola, cómo estás el día de hoy?"}
+            {"role": "assistant", "content": "Hola, soy el tutor IA de la CUN. ¿En que puedo ayudarte?"}
         ]
     # if "audio_initialized" not in st.session_state:
     #     st.session_state.audio_initialized = False
