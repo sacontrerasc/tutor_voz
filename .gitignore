@@ -1,8 +1,40 @@
-echo ".env
+# Variables de entorno
+.env
+
+# Compilados de Python
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-*.DS_Store
-*.idea/
-.vscode/" > .gitignore
+
+# Archivos ocultos de sistema
+.DS_Store
+Thumbs.db
+
+# IDEs y editores
+.idea/
+.vscode/
+
+# Entornos virtuales
+env/
+.venv/
+venv/
+
+# Streamlit
+.streamlit/
+
+# Bases de datos y archivos temporales
+*.db
+*.sqlite3
+*.log
+
+# Repos y filtros de git
+.git-filter-repo/
+
+# Ignorar TODO excepto imágenes y assets necesarios
+!*.png
+!*.jpg
+!*.jpeg
+!*.gif
+!*.svg
+!assets/
