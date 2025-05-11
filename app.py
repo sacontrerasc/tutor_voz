@@ -7,7 +7,7 @@ from streamlit_float import *
 # Inicializa elementos flotantes
 float_init()
 
-# Inicializa sesión de mensajes
+# Inicializa mensajes en sesión
 def initialize_session_state():
     if "messages" not in st.session_state:
         st.session_state.messages = [
@@ -16,25 +16,30 @@ def initialize_session_state():
 
 initialize_session_state()
 
-# Estilos CSS personalizados
+# CSS personalizado para fondo oscuro y estilo visual
 st.markdown("""
 <style>
-body, html {
-    background-color: #080D18;
-    color: #F7F6F6;
-    font-family: 'Segoe UI', sans-serif;
-    text-align: center;
-    margin: 0;
-    padding: 0;
+/* Fondo oscuro real para Streamlit */
+[data-testid="stAppViewContainer"] {
+    background-color: #080D18 !important;
 }
 
+/* Bloques verticales sin fondo blanco */
+[data-testid="stVerticalBlock"] {
+    background-color: transparent !important;
+}
+
+/* Título principal */
 h1 {
     font-size: 42px;
     font-weight: bold;
     color: #F7F6F6;
     margin-top: 60px;
+    text-align: center;
+    font-family: 'Segoe UI', sans-serif;
 }
 
+/* Burbuja del tutor */
 .chat-bubble {
     background: linear-gradient(to right, #0F69F5, #3435A1);
     color: white;
@@ -45,8 +50,10 @@ h1 {
     display: inline-block;
     box-shadow: 0 0 15px rgba(0, 137, 255, 0.4);
     margin-top: 30px;
+    max-width: 700px;
 }
 
+/* Avatar animado */
 .circle-visual {
     margin: 40px auto 0;
     width: 130px;
@@ -56,49 +63,44 @@ h1 {
     animation: pulse 2s infinite;
 }
 
+/* Animación */
 @keyframes pulse {
     0% { box-shadow: 0 0 0 0 rgba(0,137,255, 0.5); }
     70% { box-shadow: 0 0 0 20px rgba(0,137,255, 0); }
     100% { box-shadow: 0 0 0 0 rgba(0,137,255, 0); }
 }
-
-.footer-container {
-    padding: 30px 0;
-}
 </style>
 """, unsafe_allow_html=True)
 
-# Título
+# Título del sistema
 st.markdown("<h1>Tutor de Voz IA</h1>", unsafe_allow_html=True)
 
 # Mensaje inicial del tutor
 st.markdown("""
-<div class='chat-bubble'>
-    Hola, soy tu tutor. ¿En qué puedo ayudarte?
+<div style='text-align: center;'>
+    <div class='chat-bubble'>Hola, soy tu tutor. ¿En qué puedo ayudarte?</div>
 </div>
 """, unsafe_allow_html=True)
 
-# Elemento visual animado
+# Avatar visual animado
 st.markdown("<div class='circle-visual'></div>", unsafe_allow_html=True)
 
-# Entrada de audio/micrófono
-st.markdown("""<div class="footer-container">""", unsafe_allow_html=True)
+# Entrada de audio (micrófono)
 audio_bytes = audio_recorder()
-st.markdown("""</div>""", unsafe_allow_html=True)
 
 # Procesamiento del audio
 if audio_bytes:
     with st.spinner("Transcribiendo..."):
-        webm_file_path = "temp_audio.mp3"
-        with open(webm_file_path, "wb") as f:
+        audio_path = "temp_audio.mp3"
+        with open(audio_path, "wb") as f:
             f.write(audio_bytes)
-        transcript = speech_to_text(webm_file_path)
+        transcript = speech_to_text(audio_path)
         if transcript:
             st.session_state.messages.append({"role": "user", "content": transcript})
             st.markdown(f"""<div class="chat-bubble">{transcript}</div>""", unsafe_allow_html=True)
-            os.remove(webm_file_path)
+            os.remove(audio_path)
 
-# Generación de respuesta del asistente
+# Generar respuesta del tutor IA
 if st.session_state.messages[-1]["role"] != "assistant":
     with st.spinner("Pensando 🤔..."):
         final_response = get_answer(st.session_state.messages)
