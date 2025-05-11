@@ -1,35 +1,33 @@
 import streamlit as st
 import os
+from PIL import Image
 from utils import get_answer, text_to_speech, autoplay_audio, speech_to_text
 from audio_recorder_streamlit import audio_recorder
 from streamlit_float import *
 
-# Inicializa elementos flotantes
+# Inicializa flotantes
 float_init()
 
-# Inicializa mensajes en sesión
+# Inicializa sesión
 def initialize_session_state():
     if "messages" not in st.session_state:
         st.session_state.messages = [
             {"role": "assistant", "content": "Hola, soy tu tutor. ¿En qué puedo ayudarte?"}
         ]
+    if "recording" not in st.session_state:
+        st.session_state.recording = False
 
 initialize_session_state()
 
-# CSS personalizado para fondo oscuro y estilo visual
+# CSS personalizado
 st.markdown("""
 <style>
-/* Fondo oscuro real para Streamlit */
 [data-testid="stAppViewContainer"] {
     background-color: #080D18 !important;
 }
-
-/* Bloques verticales sin fondo blanco */
 [data-testid="stVerticalBlock"] {
     background-color: transparent !important;
 }
-
-/* Título principal */
 h1 {
     font-size: 42px;
     font-weight: bold;
@@ -38,8 +36,6 @@ h1 {
     text-align: center;
     font-family: 'Segoe UI', sans-serif;
 }
-
-/* Burbuja del tutor */
 .chat-bubble {
     background: linear-gradient(to right, #0F69F5, #3435A1);
     color: white;
@@ -52,8 +48,6 @@ h1 {
     margin-top: 30px;
     max-width: 700px;
 }
-
-/* Avatar animado */
 .circle-visual {
     margin: 40px auto 0;
     width: 130px;
@@ -62,33 +56,60 @@ h1 {
     background: radial-gradient(circle at center, rgba(0,137,255,0.6), rgba(52,53,161,0.9));
     animation: pulse 2s infinite;
 }
-
-/* Animación */
 @keyframes pulse {
     0% { box-shadow: 0 0 0 0 rgba(0,137,255, 0.5); }
     70% { box-shadow: 0 0 0 20px rgba(0,137,255, 0); }
     100% { box-shadow: 0 0 0 0 rgba(0,137,255, 0); }
 }
+/* Micrófono centrado */
+.audio-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+}
+/* Elimina bordes y fondo blanco */
+.css-1kyxreq, .stAudioRecorder, .stFileUploader {
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
-# Título del sistema
+# Título
 st.markdown("<h1>Tutor de Voz IA</h1>", unsafe_allow_html=True)
 
-# Mensaje inicial del tutor
+# Primer mensaje
 st.markdown("""
 <div style='text-align: center;'>
     <div class='chat-bubble'>Hola, soy tu tutor. ¿En qué puedo ayudarte?</div>
 </div>
 """, unsafe_allow_html=True)
 
-# Avatar visual animado
+# Avatar
 st.markdown("<div class='circle-visual'></div>", unsafe_allow_html=True)
 
-# Entrada de audio (micrófono)
-audio_bytes = audio_recorder()
+# Cargar imágenes de micrófono
+mic_on = Image.open("assets/mic_on.png")
+mic_off = Image.open("assets/mic_off.png")
 
-# Procesamiento del audio
+# Micrófono personalizado
+st.markdown("<div class='audio-container'>", unsafe_allow_html=True)
+col1, col2, col3 = st.columns([4, 1, 4])
+with col2:
+    if st.button("", key="mic_button"):
+        st.session_state.recording = not st.session_state.recording
+
+    # Mostrar el icono según el estado
+    if st.session_state.recording:
+        st.image(mic_on, width=80)
+        audio_bytes = audio_recorder()
+    else:
+        st.image(mic_off, width=80)
+        audio_bytes = None
+st.markdown("</div>", unsafe_allow_html=True)
+
+# Transcripción
 if audio_bytes:
     with st.spinner("Transcribiendo..."):
         audio_path = "temp_audio.mp3"
@@ -98,15 +119,16 @@ if audio_bytes:
         if transcript:
             st.session_state.messages.append({"role": "user", "content": transcript})
             st.markdown(f"""<div class="chat-bubble">{transcript}</div>""", unsafe_allow_html=True)
-            os.remove(audio_path)
+        os.remove(audio_path)
 
-# Generar respuesta del tutor IA
+# Respuesta IA
 if st.session_state.messages[-1]["role"] != "assistant":
     with st.spinner("Pensando 🤔..."):
         final_response = get_answer(st.session_state.messages)
-    with st.spinner("Generando respuesta de audio..."):
+    with st.spinner("Generando audio..."):
         audio_file = text_to_speech(final_response)
         autoplay_audio(audio_file)
     st.markdown(f"""<div class="chat-bubble">{final_response}</div>""", unsafe_allow_html=True)
     st.session_state.messages.append({"role": "assistant", "content": final_response})
     os.remove(audio_file)
+
