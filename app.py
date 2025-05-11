@@ -155,12 +155,7 @@ with st.container():
         st.markdown(f"""<div class="message user-message">{user_prompt}</div>""", unsafe_allow_html=True)
 
     st.markdown("""<div class="chat-input-container">""", unsafe_allow_html=True)
-    audio_bytes = audio_recorder(text_config={
-        "start": "Grabar",
-        "stop": "Detener",
-        "recording": "Grabando...",
-        "mic_error": "Error al acceder al micrófono"
-    })
+    audio_bytes = audio_recorder() # Removed text_config
     st.markdown("""</div>""", unsafe_allow_html=True)
 
 
