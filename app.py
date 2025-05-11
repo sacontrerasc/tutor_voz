@@ -2,7 +2,8 @@ import streamlit as st
 import os
 from utils import get_answer, text_to_speech, autoplay_audio, speech_to_text
 from audio_recorder_streamlit import audio_recorder
-from streamlit_float import *
+from streamlit_float import float_init
+from PIL import Image
 
 # Inicializa flotantes
 float_init()
@@ -56,26 +57,11 @@ h1, h3 {
     70% { box-shadow: 0 0 0 20px rgba(0,137,255, 0); }
     100% { box-shadow: 0 0 0 0 rgba(0,137,255, 0); }
 }
-.audio-button-container {
+.audio-container {
     display: flex;
     justify-content: center;
     align-items: center;
-    margin-top: 30px;
-}
-.audio-button {
-    background: none;
-    border: none;
-    cursor: pointer;
-    text-align: center;
-}
-.audio-button img {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    transition: transform 0.2s;
-}
-.audio-button img:hover {
-    transform: scale(1.1);
+    margin-top: 20px;
 }
 .hide-recorder audio, .hide-recorder div {
     display: none !important;
@@ -86,7 +72,7 @@ h1, h3 {
 </style>
 """, unsafe_allow_html=True)
 
-# Título con subtítulo
+# Título y subtítulo personalizados
 st.markdown("""
 <div style='text-align: center; margin-top: 40px; font-family: "Segoe UI", sans-serif;'>
     <h1 style='color: #F7F6F6; font-size: 48px; font-weight: 700;'>Chatea con el Tutor de voz</h1>
@@ -104,40 +90,40 @@ st.markdown("""
 # Avatar animado
 st.markdown("<div class='circle-visual'></div>", unsafe_allow_html=True)
 
-# Imagen del micrófono
+# Icono del micrófono (local)
 mic_img = "mic_on_fixed.png" if st.session_state.recording else "mic_off_fixed.png"
-mic_url = f"https://raw.githubusercontent.com/sacontrerasc/tutor_voz/main/assets/{mic_img}"
+mic_path = os.path.join("assets", mic_img)
 
-# Botón funcional en el centro con imagen
-st.markdown("<div class='audio-button-container'>", unsafe_allow_html=True)
+# Micrófono como botón centrado
+st.markdown("<div class='audio-container'>", unsafe_allow_html=True)
 col1, col2, col3 = st.columns([4, 1, 4])
 with col2:
-    if st.button("", key="mic_toggle_button"):
+    if st.button("🎤", key="mic_button"):
         st.session_state.recording = not st.session_state.recording
-    st.markdown(f"<img src='{mic_url}' class='audio-button' alt='Mic'>", unsafe_allow_html=True)
+    st.image(mic_path, width=80)
 st.markdown("</div>", unsafe_allow_html=True)
 
-# Grabación oculta y controlada
+# Grabación (invisible)
 audio_bytes = None
-placeholder = st.empty()  # Para que no se vea en pantalla
-
 if st.session_state.recording:
-    with placeholder:
+    with st.container():
+        st.markdown("<div class='hide-recorder'>", unsafe_allow_html=True)
         audio_bytes = audio_recorder(text="", icon_size="0.0001rem")
+        st.markdown("</div>", unsafe_allow_html=True)
 
-# Transcripción del audio
+# Transcripción de audio
 if audio_bytes:
     with st.spinner("Transcribiendo..."):
-        temp_audio = "temp_audio.mp3"
-        with open(temp_audio, "wb") as f:
+        audio_path = "temp_audio.mp3"
+        with open(audio_path, "wb") as f:
             f.write(audio_bytes)
-        transcript = speech_to_text(temp_audio)
+        transcript = speech_to_text(audio_path)
         if transcript:
             st.session_state.messages.append({"role": "user", "content": transcript})
             st.markdown(f"""<div class="chat-bubble">{transcript}</div>""", unsafe_allow_html=True)
-        os.remove(temp_audio)
+        os.remove(audio_path)
 
-# Respuesta del asistente
+# Respuesta del tutor IA
 if st.session_state.messages[-1]["role"] != "assistant":
     with st.spinner("Pensando 🤔..."):
         final_response = get_answer(st.session_state.messages)
