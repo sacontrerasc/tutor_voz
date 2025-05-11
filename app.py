@@ -30,13 +30,9 @@ st.markdown("""
 [data-testid="stVerticalBlock"] {
     background-color: transparent !important;
 }
-h1 {
-    font-size: 42px;
-    font-weight: bold;
-    color: #F7F6F6;
-    margin-top: 60px;
-    text-align: center;
+h1, h3 {
     font-family: 'Segoe UI', sans-serif;
+    text-align: center;
 }
 .chat-bubble {
     background: linear-gradient(to right, #0F69F5, #3435A1);
@@ -78,13 +74,22 @@ h1 {
 </style>
 """, unsafe_allow_html=True)
 
-# Título y bienvenida
-st.markdown("<h1>Tutor de Voz IA</h1>", unsafe_allow_html=True)
+# Título estilo imagen
+st.markdown("""
+<div style='text-align: center; margin-top: 40px; font-family: "Segoe UI", sans-serif;'>
+    <h1 style='color: #F7F6F6; font-size: 48px; font-weight: 700;'>Chatea con el Tutor de voz</h1>
+    <h3 style='color: #A3AEAD; font-weight: 400; margin-top: -15px;'>Para estudiantes de la CUN</h3>
+</div>
+""", unsafe_allow_html=True)
+
+# Burbuja de bienvenida
 st.markdown("""
 <div style='text-align: center;'>
     <div class='chat-bubble'>Hola, soy el tutor IA de la CUN. ¿En qué puedo ayudarte?</div>
 </div>
 """, unsafe_allow_html=True)
+
+# Avatar visual
 st.markdown("<div class='circle-visual'></div>", unsafe_allow_html=True)
 
 # Selecciona imagen según estado
@@ -119,7 +124,7 @@ html(f"""
 """, height=130)
 
 # Manejar evento del botón
-if st.session_state.get("toggle_flag", False) is False and "toggle_recording" in st.experimental_get_query_params():
+if st.session_state.get("toggle_flag", False) is False and "toggle_recording" in st.query_params:
     st.session_state.recording = not st.session_state.recording
     st.session_state.toggle_flag = True
 else:
