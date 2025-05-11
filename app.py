@@ -90,8 +90,8 @@ st.markdown("""
 st.markdown("<div class='circle-visual'></div>", unsafe_allow_html=True)
 
 # Cargar imágenes de micrófono
-mic_on = Image.open("assets/mic_on.png")
-mic_off = Image.open("assets/mic_off.png")
+mic_on = Image.open("assets/mic_on_fixed.png")
+mic_off = Image.open("assets/mic_off_fixed.png")
 
 # Micrófono personalizado
 st.markdown("<div class='audio-container'>", unsafe_allow_html=True)
