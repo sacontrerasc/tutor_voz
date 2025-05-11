@@ -5,6 +5,9 @@ from utils import get_answer, text_to_speech, autoplay_audio, speech_to_text
 from audio_recorder_streamlit import audio_recorder
 from streamlit_float import float_init
 
+# Detectar si estamos en Heroku
+IS_HEROKU = os.getenv("ON_HEROKU") == "1"
+
 # Inicializar configuración visual
 float_init()
 
@@ -90,7 +93,7 @@ with col2:
 
 # --- CAPTURAR AUDIO SOLO TRAS CLIC ---
 audio_bytes = None
-if st.session_state.run_recorder:
+if st.session_state.run_recorder and not IS_HEROKU:
     st.session_state.run_recorder = False  # limpiar trigger
     with st.container():
         st.markdown("<div class='hide-recorder'>", unsafe_allow_html=True)
@@ -120,4 +123,3 @@ if audio_bytes:
 
         st.markdown(f"<div class='chat-bubble'>{response}</div>", unsafe_allow_html=True)
         st.session_state.messages.append({"role": "assistant", "content": response})
-
