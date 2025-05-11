@@ -117,13 +117,13 @@ with col2:
     st.markdown(f"<img src='{mic_url}' class='audio-button' alt='Mic'>", unsafe_allow_html=True)
 st.markdown("</div>", unsafe_allow_html=True)
 
-# Grabación oculta
+# Grabación oculta y controlada
 audio_bytes = None
+placeholder = st.empty()  # Para que no se vea en pantalla
+
 if st.session_state.recording:
-    with st.container():
-        st.markdown("<div class='hide-recorder'>", unsafe_allow_html=True)
+    with placeholder:
         audio_bytes = audio_recorder(text="", icon_size="0.0001rem")
-        st.markdown("</div>", unsafe_allow_html=True)
 
 # Transcripción del audio
 if audio_bytes:
