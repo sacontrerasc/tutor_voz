@@ -1,9 +1,9 @@
 import streamlit as st
 import os
-from PIL import Image
 from utils import get_answer, text_to_speech, autoplay_audio, speech_to_text
 from audio_recorder_streamlit import audio_recorder
 from streamlit_float import *
+from streamlit.components.v1 import html
 
 # Inicializa flotantes
 float_init()
@@ -16,6 +16,8 @@ def initialize_session_state():
         ]
     if "recording" not in st.session_state:
         st.session_state.recording = False
+    if "toggle_flag" not in st.session_state:
+        st.session_state.toggle_flag = False
 
 initialize_session_state()
 
@@ -67,7 +69,6 @@ h1 {
     align-items: center;
     margin-top: 20px;
 }
-/* Oculta completamente el grabador */
 .hide-recorder audio, .hide-recorder div {
     display: none !important;
     visibility: hidden !important;
@@ -77,7 +78,7 @@ h1 {
 </style>
 """, unsafe_allow_html=True)
 
-# Título y saludo inicial
+# Título y bienvenida
 st.markdown("<h1>Tutor de Voz IA</h1>", unsafe_allow_html=True)
 st.markdown("""
 <div style='text-align: center;'>
@@ -86,34 +87,53 @@ st.markdown("""
 """, unsafe_allow_html=True)
 st.markdown("<div class='circle-visual'></div>", unsafe_allow_html=True)
 
-# Cargar íconos del micrófono
-mic_on = Image.open("assets/mic_on_fixed.png")
-mic_off = Image.open("assets/mic_off_fixed.png")
+# Selecciona imagen según estado
+mic_img = "mic_on_fixed.png" if st.session_state.recording else "mic_off_fixed.png"
 
-# Mostrar botón visual del micrófono
-st.markdown("<div class='audio-container'>", unsafe_allow_html=True)
-col1, col2, col3 = st.columns([4, 1, 4])
-with col2:
-    if st.button("", key="mic_button"):
-        st.session_state.recording = not st.session_state.recording
+# Mostrar botón HTML con imagen central
+html(f"""
+    <style>
+    .mic-button {{
+        background: none;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        justify-content: center;
+        margin-top: 20px;
+    }}
+    .mic-button img {{
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        transition: transform 0.2s;
+    }}
+    .mic-button img:hover {{
+        transform: scale(1.1);
+    }}
+    </style>
+    <form method="post">
+        <button class="mic-button" name="toggle_recording">
+            <img src="https://raw.githubusercontent.com/sacontrerasc/tutor_voz/main/assets/{mic_img}" alt="Mic">
+        </button>
+    </form>
+""", height=130)
 
-    if st.session_state.recording:
-        st.image(mic_on, width=80)
-    else:
-        st.image(mic_off, width=80)
-st.markdown("</div>", unsafe_allow_html=True)
+# Manejar evento del botón
+if st.session_state.get("toggle_flag", False) is False and "toggle_recording" in st.experimental_get_query_params():
+    st.session_state.recording = not st.session_state.recording
+    st.session_state.toggle_flag = True
+else:
+    st.session_state.toggle_flag = False
 
-# Grabación oculta al usuario pero funcional
+# Grabación (oculta)
 audio_bytes = None
 if st.session_state.recording:
     with st.container():
-        st.markdown("""
-        <div class='hide-recorder'>
-        """, unsafe_allow_html=True)
+        st.markdown("<div class='hide-recorder'>", unsafe_allow_html=True)
         audio_bytes = audio_recorder(text="", icon_size="0.0001rem")
         st.markdown("</div>", unsafe_allow_html=True)
 
-# Transcripción del audio grabado
+# Transcripción
 if audio_bytes:
     with st.spinner("Transcribiendo..."):
         audio_path = "temp_audio.mp3"
@@ -125,7 +145,7 @@ if audio_bytes:
             st.markdown(f"""<div class="chat-bubble">{transcript}</div>""", unsafe_allow_html=True)
         os.remove(audio_path)
 
-# Procesar respuesta de la IA
+# Respuesta IA
 if st.session_state.messages[-1]["role"] != "assistant":
     with st.spinner("Pensando 🤔..."):
         final_response = get_answer(st.session_state.messages)
