@@ -60,6 +60,7 @@ h1, h3 {
     display: flex;
     justify-content: center;
     align-items: center;
+    flex-direction: column;
     margin-top: 20px;
 }
 .hide-recorder audio, .hide-recorder div {
@@ -86,24 +87,21 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# Avatar
+# Avatar animado
 st.markdown("<div class='circle-visual'></div>", unsafe_allow_html=True)
 
-# Cargar imagen del micrófono según estado
+# Mostrar imagen + botón del micrófono
 mic_filename = "mic_on_fixed.png" if st.session_state.recording else "mic_off_fixed.png"
 mic_path = os.path.join("assets", mic_filename)
+mic_image = Image.open(mic_path)
 
-# Mostrar imagen + botón
 st.markdown("<div class='audio-container'>", unsafe_allow_html=True)
-col1, col2, col3 = st.columns([4, 1, 4])
-with col2:
-    mic_image = Image.open(mic_path)
-    st.image(mic_image, width=80)
-    if st.button("🎤", key="mic_button"):
-        st.session_state.recording = not st.session_state.recording
+st.image(mic_image, width=80)
+if st.button("🎤", key="mic_button"):
+    st.session_state.recording = not st.session_state.recording
 st.markdown("</div>", unsafe_allow_html=True)
 
-# Ocultar visual del componente audio_recorder
+# Componente oculto para grabar
 audio_bytes = None
 if st.session_state.recording:
     with st.container():
