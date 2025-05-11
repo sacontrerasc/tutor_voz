@@ -12,7 +12,7 @@ float_init()
 def initialize_session_state():
     if "messages" not in st.session_state:
         st.session_state.messages = [
-            {"role": "assistant", "content": "Hola, soy eltutor IA de la CUN. ¿En que puedo ayudarte?"}
+            {"role": "assistant", "content": "Hola, soy el tutor IA de la CUN. ¿En qué puedo ayudarte?"}
         ]
     if "recording" not in st.session_state:
         st.session_state.recording = False
@@ -67,28 +67,30 @@ h1 {
     align-items: center;
     margin-top: 20px;
 }
-.css-1kyxreq, .stAudioRecorder, .stFileUploader {
-    background-color: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
+/* Oculta completamente el grabador */
+.hide-recorder audio, .hide-recorder div {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0px !important;
+    width: 0px !important;
 }
 </style>
 """, unsafe_allow_html=True)
 
-# Título y mensaje de bienvenida
+# Título y saludo inicial
 st.markdown("<h1>Tutor de Voz IA</h1>", unsafe_allow_html=True)
 st.markdown("""
 <div style='text-align: center;'>
-    <div class='chat-bubble'>Hola, soy tu tutor. ¿En qué puedo ayudarte?</div>
+    <div class='chat-bubble'>Hola, soy el tutor IA de la CUN. ¿En qué puedo ayudarte?</div>
 </div>
 """, unsafe_allow_html=True)
 st.markdown("<div class='circle-visual'></div>", unsafe_allow_html=True)
 
-# Cargar imágenes de micrófono
+# Cargar íconos del micrófono
 mic_on = Image.open("assets/mic_on_fixed.png")
 mic_off = Image.open("assets/mic_off_fixed.png")
 
-# Botón visual del micrófono
+# Mostrar botón visual del micrófono
 st.markdown("<div class='audio-container'>", unsafe_allow_html=True)
 col1, col2, col3 = st.columns([4, 1, 4])
 with col2:
@@ -101,14 +103,17 @@ with col2:
         st.image(mic_off, width=80)
 st.markdown("</div>", unsafe_allow_html=True)
 
-# Activar el grabador si está en estado 'grabando'
-with st.container():
-    if st.session_state.recording:
-        audio_bytes = audio_recorder(text="", icon_size="0.0001rem")  # oculto
-    else:
-        audio_bytes = None
+# Grabación oculta al usuario pero funcional
+audio_bytes = None
+if st.session_state.recording:
+    with st.container():
+        st.markdown("""
+        <div class='hide-recorder'>
+        """, unsafe_allow_html=True)
+        audio_bytes = audio_recorder(text="", icon_size="0.0001rem")
+        st.markdown("</div>", unsafe_allow_html=True)
 
-# Transcripción y envío a la IA
+# Transcripción del audio grabado
 if audio_bytes:
     with st.spinner("Transcribiendo..."):
         audio_path = "temp_audio.mp3"
@@ -120,7 +125,7 @@ if audio_bytes:
             st.markdown(f"""<div class="chat-bubble">{transcript}</div>""", unsafe_allow_html=True)
         os.remove(audio_path)
 
-# Obtener respuesta del tutor IA
+# Procesar respuesta de la IA
 if st.session_state.messages[-1]["role"] != "assistant":
     with st.spinner("Pensando 🤔..."):
         final_response = get_answer(st.session_state.messages)
