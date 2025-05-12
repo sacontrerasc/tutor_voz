@@ -1,13 +1,9 @@
 import streamlit as st
 import os
-from PIL import Image
-from streamlit_webrtc import webrtc_streamer, WebRtcMode, ClientSettings
 from utils import get_answer, text_to_speech, autoplay_audio, speech_to_text
 from streamlit_float import float_init
-import wave
+from audio_recorder_streamlit import audio_recorder
 from tempfile import NamedTemporaryFile
-import time
-import numpy as np
 
 # Inicializa efectos visuales
 float_init()
@@ -55,73 +51,41 @@ st.markdown("<h3>Para estudiantes de la CUN</h3>", unsafe_allow_html=True)
 st.markdown("<div class='chat-bubble'>Hola, soy el tutor IA de la CUN. ¿En qué puedo ayudarte?</div>", unsafe_allow_html=True)
 st.markdown("<div class='circle'></div>", unsafe_allow_html=True)
 
-# Captura de audio
-st.info("Activa el micrófono para hablar")
-webrtc_ctx = webrtc_streamer(
-    key="speech",
-    mode=WebRtcMode.SENDONLY,
-    client_settings=ClientSettings(
-        media_stream_constraints={"audio": True, "video": False},
-        rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
-    )
-)
+# Instrucción
+st.info("Pulsa el botón rojo para grabar tu pregunta al tutor")
 
-# Función para validar duración del audio
-def is_audio_long_enough(path, min_duration=0.1):
-    try:
-        with wave.open(path, 'rb') as wf:
-            frames = wf.getnframes()
-            rate = wf.getframerate()
-            duration = frames / float(rate)
-            return duration >= min_duration
-    except Exception:
-        return False
+# Botón de grabación de audio
+audio_bytes = audio_recorder(pause_threshold=1.0, sample_rate=44100)
 
-# Procesamiento del audio si está disponible
-if webrtc_ctx.audio_receiver:
-    import av
+# Procesamiento de audio si se graba algo
+if audio_bytes:
+    # Guardar temporalmente
+    with NamedTemporaryFile(delete=False, suffix=".wav") as f:
+        f.write(audio_bytes)
+        temp_path = f.name
 
-    audio_buffer = []
-    start_time = time.time()
+    # Transcribir
+    transcript = speech_to_text(temp_path)
+    os.remove(temp_path)
 
-    # Captura de audio durante al menos 1.5 segundos
-    while time.time() - start_time < 1.5:
-        try:
-            audio_frames = webrtc_ctx.audio_receiver.get_frames(timeout=0.5)
-            if audio_frames:
-                audio_buffer.append(audio_frames[0].to_ndarray())
-        except Exception:
-            pass
+    if transcript:
+        st.session_state.messages.append({"role": "user", "content": transcript})
+        st.markdown(f"<div class='chat-bubble'>{transcript}</div>", unsafe_allow_html=True)
 
-    if audio_buffer:
-        audio_data = np.concatenate(audio_buffer)
+        with st.spinner("Pensando 🤔..."):
+            response = get_answer(st.session_state.messages)
 
-        with NamedTemporaryFile(delete=False, suffix=".wav") as f:
-            f.write(audio_data.tobytes())
-            temp_path = f.name
+        with st.spinner("Generando audio..."):
+            audio_file = text_to_speech(response)
+            autoplay_audio(audio_file)
+            os.remove(audio_file)
 
-        if is_audio_long_enough(temp_path):
-            transcript = speech_to_text(temp_path)
-            os.remove(temp_path)
+        st.markdown(f"<div class='chat-bubble'>{response}</div>", unsafe_allow_html=True)
+        st.session_state.messages.append({"role": "assistant", "content": response})
+    else:
+        st.markdown(
+            "<div class='chat-bubble' style='background-color: #F54242;'>"
+            "⚠️ El audio no pudo ser procesado. Por favor, intenta grabar de nuevo."
+            "</div>", unsafe_allow_html=True
+        )
 
-            if transcript:
-                st.session_state.messages.append({"role": "user", "content": transcript})
-                st.markdown(f"<div class='chat-bubble'>{transcript}</div>", unsafe_allow_html=True)
-
-                with st.spinner("Pensando 🤔..."):
-                    response = get_answer(st.session_state.messages)
-
-                with st.spinner("Generando audio..."):
-                    audio_file = text_to_speech(response)
-                    autoplay_audio(audio_file)
-                    os.remove(audio_file)
-
-                st.markdown(f"<div class='chat-bubble'>{response}</div>", unsafe_allow_html=True)
-                st.session_state.messages.append({"role": "assistant", "content": response})
-        else:
-            os.remove(temp_path)
-            st.markdown(
-                "<div class='chat-bubble' style='background-color: #F54242;'>"
-                "⚠️ El audio grabado es demasiado corto. Por favor, habla al menos 0.1 segundos."
-                "</div>", unsafe_allow_html=True
-            )
