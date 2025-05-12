@@ -4,15 +4,16 @@ from utils import get_answer, text_to_speech, autoplay_audio, speech_to_text
 from streamlit_float import float_init
 from audio_recorder_streamlit import audio_recorder
 from tempfile import NamedTemporaryFile
+from streamlit.experimental import rerun
 
 # Inicializa efectos visuales
 float_init()
 
 # Estado de sesión
 if "messages" not in st.session_state:
-    st.session_state.messages = [
-        {"role": "assistant", "content": "Hola, soy tu tutor. ¿En qué puedo ayudarte?"}
-    ]
+    st.session_state.messages = [{"role": "assistant", "content": "Hola, soy tu tutor. ¿En qué puedo ayudarte?"}]
+if "pending_user_msg" not in st.session_state:
+    st.session_state.pending_user_msg = None
 
 # Estilos personalizados
 st.markdown("""
@@ -59,25 +60,6 @@ st.markdown("""
         max-width: 80%;
         font-size: 16px;
     }
-    .stAudioRecorder > div {
-        background-color: transparent !important;
-        border: none !important;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }
-    .stAudioRecorder button {
-        background-color: transparent !important;
-        border: none !important;
-    }
-    .stAudioRecorder svg {
-        fill: white !important;
-        height: 50px;
-        width: 50px;
-    }
-    .stAudioRecorder span {
-        display: none;
-    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -86,14 +68,28 @@ st.markdown("<h1>Chatea con el Tutor de voz</h1>", unsafe_allow_html=True)
 st.markdown("<h3>Para estudiantes de la CUN</h3>", unsafe_allow_html=True)
 st.markdown("<div class='circle'></div>", unsafe_allow_html=True)
 
-# Botón grabación de audio (solo micrófono)
-audio_bytes = audio_recorder(
-    text="🎙️",
-    pause_threshold=1.0,
-    sample_rate=44100
-)
+# Mostrar mensajes del historial
+st.markdown("<div class='chat-container'>", unsafe_allow_html=True)
+for msg in st.session_state.messages:
+    clase = "bubble-user" if msg["role"] == "user" else "bubble-assistant"
+    st.markdown(f"<div class='{clase}'>{msg['content']}</div>", unsafe_allow_html=True)
+st.markdown("</div>", unsafe_allow_html=True)
 
-# Procesamiento de audio
+# Si hay una pregunta pendiente, genera la respuesta
+if st.session_state.pending_user_msg:
+    with st.spinner("Generando respuesta..."):
+        response = get_answer(st.session_state.messages)
+    audio_file = text_to_speech(response)
+    autoplay_audio(audio_file)
+    os.remove(audio_file)
+
+    st.session_state.messages.append({"role": "assistant", "content": response})
+    st.session_state.pending_user_msg = None
+    rerun()
+
+# Grabación de audio
+audio_bytes = audio_recorder(text="🎙️ Pregunta algo", pause_threshold=1.0, sample_rate=44100)
+
 if audio_bytes:
     with NamedTemporaryFile(delete=False, suffix=".wav") as f:
         f.write(audio_bytes)
@@ -103,28 +99,14 @@ if audio_bytes:
     os.remove(temp_path)
 
     if transcript:
-        # Mostrar la pregunta primero
         st.session_state.messages.append({"role": "user", "content": transcript})
-
-        # Mostrar mensaje 'Pensando...'
         st.session_state.messages.append({"role": "assistant", "content": "🧠 Pensando..."})
-        st.rerun()  # Mostrar primero pregunta + pensando, luego hacer procesamiento
-
-# Mostrar mensajes ordenados
-st.markdown("<div class='chat-container'>", unsafe_allow_html=True)
-for msg in st.session_state.messages:
-    clase = "bubble-user" if msg["role"] == "user" else "bubble-assistant"
-    st.markdown(f"<div class='{clase}'>{msg['content']}</div>", unsafe_allow_html=True)
-st.markdown("</div>", unsafe_allow_html=True)
-
-# Procesamiento real si último mensaje es "Pensando..."
-if st.session_state.messages[-1]["content"] == "🧠 Pensando...":
-    response = get_answer(st.session_state.messages[:-1])  # ignora el "Pensando..."
-    audio_file = text_to_speech(response)
-    autoplay_audio(audio_file)
-    os.remove(audio_file)
-
-    # Remplaza el "Pensando..." con la respuesta real
-    st.session_state.messages[-1] = {"role": "assistant", "content": response}
-    st.rerun()
+        st.session_state.pending_user_msg = transcript
+        rerun()
+    else:
+        st.session_state.messages.append({
+            "role": "assistant",
+            "content": "⚠️ El audio no pudo ser procesado. Por favor, intenta grabar de nuevo."
+        })
+        rerun()
 
