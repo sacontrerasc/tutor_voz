@@ -59,31 +59,27 @@ st.markdown("""
         max-width: 80%;
         font-size: 16px;
     }
-    .mic-button-container {
+    .mic-container {
         display: flex;
+        flex-direction: column;
         align-items: center;
-        justify-content: center;
-        gap: 10px;
-        margin-top: 30px;
+        margin-top: 20px;
     }
     .mic-label {
         color: #C9CED6;
         font-size: 18px;
         font-family: 'Segoe UI', sans-serif;
+        margin-bottom: 10px;
     }
     .mic-button {
-        width: 48px;
-        height: 48px;
+        width: 60px;
+        height: 60px;
         border-radius: 50%;
-        background: none;
-        border: 1px solid #3C5DC0;
+        background-color: transparent;
+        border: 2px solid #3C5DC0;
         display: flex;
         align-items: center;
         justify-content: center;
-        cursor: pointer;
-    }
-    .mic-button:hover {
-        background-color: #3C5DC0;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -93,17 +89,17 @@ st.markdown("<h1>Chatea con el Tutor de voz</h1>", unsafe_allow_html=True)
 st.markdown("<h3>Para estudiantes de la CUN</h3>", unsafe_allow_html=True)
 st.markdown("<div class='circle'></div>", unsafe_allow_html=True)
 
-# Micr贸fono personalizado
+# Micr贸fono centrado y estilizado
 with st.container():
     st.markdown("""
-        <div class="mic-button-container">
-            <span class="mic-label">Pregunta algo...</span>
+        <div class="mic-container">
+            <div class="mic-label">Pregunta algo...</div>
         </div>
     """, unsafe_allow_html=True)
 
-# Bot贸n funcional
+# Componente oculto que hace la captura
 audio_bytes = audio_recorder(
-    text="",
+    text="", 
     icon_size="2x",
     pause_threshold=1.0,
     sample_rate=44100
@@ -134,11 +130,9 @@ if st.session_state.messages and st.session_state.messages[-1]["content"] == "馃
 
     st.session_state.messages[-1] = {"role": "assistant", "content": response}
 
-# Visualizaci贸n final
+# Chat tipo burbujas
 st.markdown("<div class='chat-container'>", unsafe_allow_html=True)
 for msg in st.session_state.messages:
     clase = "bubble-user" if msg["role"] == "user" else "bubble-assistant"
     st.markdown(f"<div class='{clase}'>{msg['content']}</div>", unsafe_allow_html=True)
 st.markdown("</div>", unsafe_allow_html=True)
-
-
