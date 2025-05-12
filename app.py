@@ -33,11 +33,17 @@ st.markdown("""
         border-radius: 50%;
         animation: pulse 2s infinite;
     }
+    .chat-wrapper {
+        border: 2px solid #3435A1;
+        border-radius: 20px;
+        padding: 20px;
+        margin: 30px auto;
+        max-width: 800px;
+        background-color: transparent;
+    }
     .chat-container {
         display: flex;
         flex-direction: column;
-        max-width: 800px;
-        margin: 20px auto;
     }
     .bubble-user {
         align-self: flex-end;
@@ -67,24 +73,28 @@ st.markdown("<h1>Chatea con el Tutor de voz</h1>", unsafe_allow_html=True)
 st.markdown("<h3>Para estudiantes de la CUN</h3>", unsafe_allow_html=True)
 st.markdown("<div class='circle'></div>", unsafe_allow_html=True)
 
-# Mostrar mensajes del historial
-st.markdown("<div class='chat-container'>", unsafe_allow_html=True)
+# Contenedor con borde
+st.markdown("<div class='chat-wrapper'><div class='chat-container'>", unsafe_allow_html=True)
 for msg in st.session_state.messages:
     clase = "bubble-user" if msg["role"] == "user" else "bubble-assistant"
     st.markdown(f"<div class='{clase}'>{msg['content']}</div>", unsafe_allow_html=True)
-st.markdown("</div>", unsafe_allow_html=True)
+st.markdown("</div></div>", unsafe_allow_html=True)
 
 # Procesar si hay una pregunta pendiente
 if st.session_state.pending_user_msg:
-    with st.spinner("Generando respuesta..."):
-        response = get_answer(st.session_state.messages)
-    audio_file = text_to_speech(response)
+    with st.spinner("Generando respuesta de audio..."):
+        response = get_answer(st.session_state.messages[:-1])  # Excluye "Pensando..."
+        audio_file = text_to_speech(response)
+
+    # Reemplaza "Pensando..." por la respuesta real
+    st.session_state.messages[-1] = {"role": "assistant", "content": response}
+
+    # Reproduce respuesta
     autoplay_audio(audio_file)
     os.remove(audio_file)
 
-    st.session_state.messages.append({"role": "assistant", "content": response})
     st.session_state.pending_user_msg = None
-    st.experimental_rerun()  # Compatible con Streamlit 1.23.1
+    st.experimental_rerun()
 
 # Botón de grabación
 audio_bytes = audio_recorder(text="Pregunta algo", pause_threshold=1.0, sample_rate=44100)
