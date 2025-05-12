@@ -4,6 +4,8 @@ from utils import get_answer, text_to_speech, autoplay_audio, speech_to_text
 from streamlit_float import float_init
 from audio_recorder_streamlit import audio_recorder
 from tempfile import NamedTemporaryFile
+from streamlit.runtime.scriptrunner import RerunException
+from streamlit.runtime.scriptrunner.script_run_context import get_script_run_ctx
 
 # Inicializa efectos visuales
 float_init()
@@ -11,8 +13,8 @@ float_init()
 # Estado de sesión
 if "messages" not in st.session_state:
     st.session_state.messages = [{"role": "assistant", "content": "Hola, soy tu tutor. ¿En qué puedo ayudarte?"}]
-if "esperando_respuesta" not in st.session_state:
-    st.session_state.esperando_respuesta = False
+    st.session_state.pending_user_msg = None
+    st.session_state.awaiting_response = False
 
 # Estilos personalizados
 st.markdown("""
@@ -59,27 +61,17 @@ st.markdown("""
         max-width: 80%;
         font-size: 16px;
     }
-    .mic-container {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        margin-top: 20px;
-    }
-    .mic-label {
-        color: #C9CED6;
-        font-size: 18px;
-        font-family: 'Segoe UI', sans-serif;
-        margin-bottom: 10px;
-    }
     .mic-button {
-        width: 60px;
-        height: 60px;
-        border-radius: 50%;
-        background-color: transparent;
-        border: 2px solid #3C5DC0;
         display: flex;
-        align-items: center;
         justify-content: center;
+        align-items: center;
+        margin: 10px auto;
+        padding: 12px 20px;
+        background-color: transparent;
+        border: none;
+        font-size: 18px;
+        color: white;
+        font-family: 'Segoe UI', sans-serif;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -89,23 +81,12 @@ st.markdown("<h1>Chatea con el Tutor de voz</h1>", unsafe_allow_html=True)
 st.markdown("<h3>Para estudiantes de la CUN</h3>", unsafe_allow_html=True)
 st.markdown("<div class='circle'></div>", unsafe_allow_html=True)
 
-# Micrófono centrado y estilizado
+# Botón de grabación
 with st.container():
-    st.markdown("""
-        <div class="mic-container">
-            <div class="mic-label">Pregunta algo...</div>
-        </div>
-    """, unsafe_allow_html=True)
+    st.markdown("<div class='mic-button'>Pregunta algo...</div>", unsafe_allow_html=True)
+    audio_bytes = audio_recorder(icon_size="2x")
 
-# Componente oculto que hace la captura
-audio_bytes = audio_recorder(
-    text="", 
-    icon_size="2x",
-    pause_threshold=1.0,
-    sample_rate=44100
-)
-
-# Procesamiento
+# Procesamiento del audio
 if audio_bytes:
     with NamedTemporaryFile(delete=False, suffix=".wav") as f:
         f.write(audio_bytes)
@@ -115,24 +96,35 @@ if audio_bytes:
     os.remove(temp_path)
 
     if transcript:
+        # Almacena la pregunta y muestra el mensaje "Pensando..."
         st.session_state.messages.append({"role": "user", "content": transcript})
         st.session_state.messages.append({"role": "assistant", "content": "🧠 Pensando..."})
-        st.rerun()
+        st.session_state.pending_user_msg = transcript
+        st.session_state.awaiting_response = True
 
-if st.session_state.messages and st.session_state.messages[-1]["content"] == "🧠 Pensando...":
-    with st.spinner("Pensando..."):
-        messages_copy = st.session_state.messages[:-1]
-        response = get_answer(messages_copy)
+        # Fuerza redibujo
+        raise RerunException(get_script_run_ctx())
 
-    audio_file = text_to_speech(response)
-    autoplay_audio(audio_file)
-    os.remove(audio_file)
+# Si hay respuesta pendiente, la genera y reemplaza "Pensando..."
+if st.session_state.awaiting_response and st.session_state.pending_user_msg:
+    with st.spinner("Procesando..."):
+        response = get_answer(st.session_state.messages[:-1])  # Excluye "Pensando..."
+        st.session_state.messages[-1] = {"role": "assistant", "content": response}
 
-    st.session_state.messages[-1] = {"role": "assistant", "content": response}
+        audio_file = text_to_speech(response)
+        autoplay_audio(audio_file)
+        os.remove(audio_file)
 
-# Chat tipo burbujas
+        st.session_state.awaiting_response = False
+        st.session_state.pending_user_msg = None
+
+        # Redibuja para mostrar respuesta actualizada
+        raise RerunException(get_script_run_ctx())
+
+# Visualización del chat
 st.markdown("<div class='chat-container'>", unsafe_allow_html=True)
 for msg in st.session_state.messages:
     clase = "bubble-user" if msg["role"] == "user" else "bubble-assistant"
     st.markdown(f"<div class='{clase}'>{msg['content']}</div>", unsafe_allow_html=True)
 st.markdown("</div>", unsafe_allow_html=True)
+
