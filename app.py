@@ -11,8 +11,8 @@ float_init()
 # Estado de sesión
 if "messages" not in st.session_state:
     st.session_state.messages = [{"role": "assistant", "content": "Hola, soy tu tutor. ¿En qué puedo ayudarte?"}]
-if "pending_user_msg" not in st.session_state:
-    st.session_state.pending_user_msg = None
+if "esperando_respuesta" not in st.session_state:
+    st.session_state.esperando_respuesta = False
 
 # Estilos personalizados
 st.markdown("""
@@ -59,6 +59,32 @@ st.markdown("""
         max-width: 80%;
         font-size: 16px;
     }
+    .mic-button-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        margin-top: 30px;
+    }
+    .mic-label {
+        color: #C9CED6;
+        font-size: 18px;
+        font-family: 'Segoe UI', sans-serif;
+    }
+    .mic-button {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: none;
+        border: 1px solid #3C5DC0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+    }
+    .mic-button:hover {
+        background-color: #3C5DC0;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -67,29 +93,23 @@ st.markdown("<h1>Chatea con el Tutor de voz</h1>", unsafe_allow_html=True)
 st.markdown("<h3>Para estudiantes de la CUN</h3>", unsafe_allow_html=True)
 st.markdown("<div class='circle'></div>", unsafe_allow_html=True)
 
-# Mostrar mensajes del historial
-st.markdown("<div class='chat-container'>", unsafe_allow_html=True)
-for msg in st.session_state.messages:
-    clase = "bubble-user" if msg["role"] == "user" else "bubble-assistant"
-    st.markdown(f"<div class='{clase}'>{msg['content']}</div>", unsafe_allow_html=True)
-st.markdown("</div>", unsafe_allow_html=True)
+# Micrófono personalizado
+with st.container():
+    st.markdown("""
+        <div class="mic-button-container">
+            <span class="mic-label">Pregunta algo...</span>
+        </div>
+    """, unsafe_allow_html=True)
 
-# Procesar si hay una pregunta pendiente
-if st.session_state.pending_user_msg:
-    with st.spinner("Generando respuesta..."):
-        response = get_answer(st.session_state.messages)
-    audio_file = text_to_speech(response)
-    autoplay_audio(audio_file)
-    os.remove(audio_file)
+# Botón funcional
+audio_bytes = audio_recorder(
+    text="",
+    icon_size="2x",
+    pause_threshold=1.0,
+    sample_rate=44100
+)
 
-    st.session_state.messages.append({"role": "assistant", "content": response})
-    st.session_state.pending_user_msg = None
-    st.experimental_rerun()  # Compatible con Streamlit 1.23.1
-
-# Botón de grabación
-audio_bytes = audio_recorder(text="Pregunta algo", pause_threshold=1.0, sample_rate=44100)
-
-# Procesamiento de audio
+# Procesamiento
 if audio_bytes:
     with NamedTemporaryFile(delete=False, suffix=".wav") as f:
         f.write(audio_bytes)
@@ -101,12 +121,24 @@ if audio_bytes:
     if transcript:
         st.session_state.messages.append({"role": "user", "content": transcript})
         st.session_state.messages.append({"role": "assistant", "content": "🧠 Pensando..."})
-        st.session_state.pending_user_msg = transcript
-        st.experimental_rerun()
-    else:
-        st.session_state.messages.append({
-            "role": "assistant",
-            "content": "⚠️ El audio no pudo ser procesado. Por favor, intenta grabar de nuevo."
-        })
-        st.experimental_rerun()
+        st.rerun()
+
+if st.session_state.messages and st.session_state.messages[-1]["content"] == "🧠 Pensando...":
+    with st.spinner("Pensando..."):
+        messages_copy = st.session_state.messages[:-1]
+        response = get_answer(messages_copy)
+
+    audio_file = text_to_speech(response)
+    autoplay_audio(audio_file)
+    os.remove(audio_file)
+
+    st.session_state.messages[-1] = {"role": "assistant", "content": response}
+
+# Visualización final
+st.markdown("<div class='chat-container'>", unsafe_allow_html=True)
+for msg in st.session_state.messages:
+    clase = "bubble-user" if msg["role"] == "user" else "bubble-assistant"
+    st.markdown(f"<div class='{clase}'>{msg['content']}</div>", unsafe_allow_html=True)
+st.markdown("</div>", unsafe_allow_html=True)
+
 
