@@ -57,6 +57,25 @@ st.markdown("""
         max-width: 80%;
         font-size: 16px;
     }
+
+    /* Personaliza el botón de grabación */
+    .stAudioRecorder {
+        display: flex;
+        justify-content: center;
+        margin-top: 10px;
+        margin-bottom: 20px;
+    }
+    .stAudioRecorder button {
+        background-color: transparent !important;
+        border: none !important;
+        color: white !important;
+        font-size: 18px !important;
+    }
+    .stAudioRecorder svg {
+        fill: white !important;
+        height: 2em;
+        width: 2em;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -65,9 +84,10 @@ st.markdown("<h1>Chatea con el Tutor de voz</h1>", unsafe_allow_html=True)
 st.markdown("<h3>Para estudiantes de la CUN</h3>", unsafe_allow_html=True)
 st.markdown("<div class='circle'></div>", unsafe_allow_html=True)
 
-# Botón de grabación
+# Botón de grabación solo con micrófono blanco y texto blanco
 audio_bytes = audio_recorder(
     text="🎙️ Pregunta algo",
+    icon_size="2x",  # opcional
     pause_threshold=1.0,
     sample_rate=44100
 )
@@ -82,30 +102,26 @@ if audio_bytes:
     os.remove(temp_path)
 
     if transcript:
-        # Mostrar la pregunta antes del procesamiento
         st.session_state.messages.append({"role": "user", "content": transcript})
 
-        # Visualización inmediata de la pregunta
+        # Mostrar inmediatamente la pregunta
         st.markdown("<div class='chat-container'>", unsafe_allow_html=True)
         st.markdown(f"<div class='bubble-user'>{transcript}</div>", unsafe_allow_html=True)
 
-        # Mensaje "Pensando..."
-        thinking_msg = "🧠 Pensando..."
-        st.markdown(f"<div class='bubble-assistant'>{thinking_msg}</div>", unsafe_allow_html=True)
+        # Mostrar "pensando..."
+        thinking = "🧠 Pensando..."
+        st.markdown(f"<div class='bubble-assistant'>{thinking}</div>", unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
-        # Obtener respuesta
+        # Obtener y reproducir respuesta
         response = get_answer(st.session_state.messages)
-
-        # Reproducir audio
         audio_file = text_to_speech(response)
         autoplay_audio(audio_file)
         os.remove(audio_file)
 
-        # Agregar a la conversación
         st.session_state.messages.append({"role": "assistant", "content": response})
 
-# Visualización de toda la conversación
+# Mostrar historial
 st.markdown("<div class='chat-container'>", unsafe_allow_html=True)
 for msg in st.session_state.messages:
     clase = "bubble-user" if msg["role"] == "user" else "bubble-assistant"
