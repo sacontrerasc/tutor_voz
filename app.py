@@ -65,23 +65,14 @@ st.markdown("<h1>Chatea con el Tutor de voz</h1>", unsafe_allow_html=True)
 st.markdown("<h3>Para estudiantes de la CUN</h3>", unsafe_allow_html=True)
 st.markdown("<div class='circle'></div>", unsafe_allow_html=True)
 
-# Contenedor de mensajes previos
-st.markdown("<div class='chat-container'>", unsafe_allow_html=True)
-for msg in st.session_state.messages:
-    if msg["role"] == "assistant":
-        st.markdown(f"<div class='bubble-assistant'>{msg['content']}</div>", unsafe_allow_html=True)
-    elif msg["role"] == "user":
-        st.markdown(f"<div class='bubble-user'>{msg['content']}</div>", unsafe_allow_html=True)
-st.markdown("</div>", unsafe_allow_html=True)
-
-# Botón de grabación de audio con texto personalizado
+# Botón de grabación
 audio_bytes = audio_recorder(
     text="🎙️ Pregunta algo", 
     pause_threshold=1.0, 
     sample_rate=44100
 )
 
-# Procesamiento de audio si se graba algo
+# Procesamiento del audio
 if audio_bytes:
     with NamedTemporaryFile(delete=False, suffix=".wav") as f:
         f.write(audio_bytes)
@@ -108,3 +99,9 @@ if audio_bytes:
             "content": "⚠️ El audio no pudo ser procesado. Por favor, intenta grabar de nuevo."
         })
 
+# Visualización de la conversación (al final)
+st.markdown("<div class='chat-container'>", unsafe_allow_html=True)
+for msg in st.session_state.messages:
+    clase = "bubble-user" if msg["role"] == "user" else "bubble-assistant"
+    st.markdown(f"<div class='{clase}'>{msg['content']}</div>", unsafe_allow_html=True)
+st.markdown("</div>", unsafe_allow_html=True)
