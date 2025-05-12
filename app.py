@@ -44,7 +44,7 @@ st.markdown("""
         padding: 12px 20px;
         border-radius: 20px;
         margin: 6px 0;
-        max-width: 70%;
+        max-width: 80%;
         font-size: 16px;
     }
     .bubble-assistant {
@@ -54,7 +54,7 @@ st.markdown("""
         padding: 12px 20px;
         border-radius: 20px;
         margin: 6px 0;
-        max-width: 70%;
+        max-width: 80%;
         font-size: 16px;
     }
     </style>
@@ -82,27 +82,30 @@ if audio_bytes:
     os.remove(temp_path)
 
     if transcript:
-        # Mostrar pregunta del usuario inmediatamente
+        # Mostrar la pregunta antes del procesamiento
         st.session_state.messages.append({"role": "user", "content": transcript})
 
-        # Mostrar chat actualizado (con pregunta)
+        # Visualización inmediata de la pregunta
         st.markdown("<div class='chat-container'>", unsafe_allow_html=True)
-        for msg in st.session_state.messages:
-            clase = "bubble-user" if msg["role"] == "user" else "bubble-assistant"
-            st.markdown(f"<div class='{clase}'>{msg['content']}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='bubble-user'>{transcript}</div>", unsafe_allow_html=True)
+
+        # Mensaje "Pensando..."
+        thinking_msg = "🧠 Pensando..."
+        st.markdown(f"<div class='bubble-assistant'>{thinking_msg}</div>", unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
-        with st.spinner("Pensando 🤔..."):
-            response = get_answer(st.session_state.messages)
+        # Obtener respuesta
+        response = get_answer(st.session_state.messages)
 
-        with st.spinner("Generando audio..."):
-            audio_file = text_to_speech(response)
-            autoplay_audio(audio_file)
-            os.remove(audio_file)
+        # Reproducir audio
+        audio_file = text_to_speech(response)
+        autoplay_audio(audio_file)
+        os.remove(audio_file)
 
+        # Agregar a la conversación
         st.session_state.messages.append({"role": "assistant", "content": response})
 
-# Visualización del historial completo
+# Visualización de toda la conversación
 st.markdown("<div class='chat-container'>", unsafe_allow_html=True)
 for msg in st.session_state.messages:
     clase = "bubble-user" if msg["role"] == "user" else "bubble-assistant"
