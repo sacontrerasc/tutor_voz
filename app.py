@@ -6,6 +6,8 @@ from utils import get_answer, text_to_speech, autoplay_audio, speech_to_text
 from streamlit_float import float_init
 import wave
 from tempfile import NamedTemporaryFile
+import time
+import numpy as np
 
 # Inicializa efectos visuales
 float_init()
@@ -72,19 +74,30 @@ def is_audio_long_enough(path, min_duration=0.1):
             rate = wf.getframerate()
             duration = frames / float(rate)
             return duration >= min_duration
-    except Exception as e:
+    except Exception:
         return False
 
 # Procesamiento del audio si está disponible
 if webrtc_ctx.audio_receiver:
     import av
-    import numpy as np
 
-    audio_frames = webrtc_ctx.audio_receiver.get_frames(timeout=1)
-    if audio_frames:
-        audio = audio_frames[0].to_ndarray()
+    audio_buffer = []
+    start_time = time.time()
+
+    # Captura de audio durante al menos 1.5 segundos
+    while time.time() - start_time < 1.5:
+        try:
+            audio_frames = webrtc_ctx.audio_receiver.get_frames(timeout=0.5)
+            if audio_frames:
+                audio_buffer.append(audio_frames[0].to_ndarray())
+        except Exception:
+            pass
+
+    if audio_buffer:
+        audio_data = np.concatenate(audio_buffer)
+
         with NamedTemporaryFile(delete=False, suffix=".wav") as f:
-            f.write(audio.tobytes())
+            f.write(audio_data.tobytes())
             temp_path = f.name
 
         if is_audio_long_enough(temp_path):
