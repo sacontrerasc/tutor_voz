@@ -51,9 +51,6 @@ st.markdown("<h3>Para estudiantes de la CUN</h3>", unsafe_allow_html=True)
 st.markdown("<div class='chat-bubble'>Hola, soy el tutor IA de la CUN. ¿En qué puedo ayudarte?</div>", unsafe_allow_html=True)
 st.markdown("<div class='circle'></div>", unsafe_allow_html=True)
 
-# Instrucción
-st.info("Pulsa el botón para grabar tu pregunta al tutor")
-
 # Botón de grabación de audio con texto personalizado
 audio_bytes = audio_recorder(
     text="🎙️ Pregunta algo", 
@@ -90,4 +87,3 @@ if audio_bytes:
             "⚠️ El audio no pudo ser procesado. Por favor, intenta grabar de nuevo."
             "</div>", unsafe_allow_html=True
         )
-
