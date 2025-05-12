@@ -4,7 +4,6 @@ from utils import get_answer, text_to_speech, autoplay_audio, speech_to_text
 from streamlit_float import float_init
 from audio_recorder_streamlit import audio_recorder
 from tempfile import NamedTemporaryFile
-from streamlit.experimental import rerun
 
 # Inicializa efectos visuales
 float_init()
@@ -75,7 +74,7 @@ for msg in st.session_state.messages:
     st.markdown(f"<div class='{clase}'>{msg['content']}</div>", unsafe_allow_html=True)
 st.markdown("</div>", unsafe_allow_html=True)
 
-# Si hay una pregunta pendiente, genera la respuesta
+# Procesar si hay una pregunta pendiente
 if st.session_state.pending_user_msg:
     with st.spinner("Generando respuesta..."):
         response = get_answer(st.session_state.messages)
@@ -85,11 +84,12 @@ if st.session_state.pending_user_msg:
 
     st.session_state.messages.append({"role": "assistant", "content": response})
     st.session_state.pending_user_msg = None
-    rerun()
+    st.experimental_rerun()  # Compatible con Streamlit 1.23.1
 
-# Grabación de audio
-audio_bytes = audio_recorder(text="🎙️ Pregunta algo", pause_threshold=1.0, sample_rate=44100)
+# Botón de grabación
+audio_bytes = audio_recorder(text="Pregunta algo", pause_threshold=1.0, sample_rate=44100)
 
+# Procesamiento de audio
 if audio_bytes:
     with NamedTemporaryFile(delete=False, suffix=".wav") as f:
         f.write(audio_bytes)
@@ -102,11 +102,11 @@ if audio_bytes:
         st.session_state.messages.append({"role": "user", "content": transcript})
         st.session_state.messages.append({"role": "assistant", "content": "🧠 Pensando..."})
         st.session_state.pending_user_msg = transcript
-        rerun()
+        st.experimental_rerun()
     else:
         st.session_state.messages.append({
             "role": "assistant",
             "content": "⚠️ El audio no pudo ser procesado. Por favor, intenta grabar de nuevo."
         })
-        rerun()
+        st.experimental_rerun()
 
