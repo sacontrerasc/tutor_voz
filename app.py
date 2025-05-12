@@ -52,19 +52,21 @@ st.markdown("<div class='chat-bubble'>Hola, soy el tutor IA de la CUN. ¿En qué
 st.markdown("<div class='circle'></div>", unsafe_allow_html=True)
 
 # Instrucción
-st.info("Pulsa el botón rojo para grabar tu pregunta al tutor")
+st.info("Pulsa el botón para grabar tu pregunta al tutor")
 
-# Botón de grabación de audio
-audio_bytes = audio_recorder(pause_threshold=1.0, sample_rate=44100)
+# Botón de grabación de audio con texto personalizado
+audio_bytes = audio_recorder(
+    text="🎙️ Pregunta algo", 
+    pause_threshold=1.0, 
+    sample_rate=44100
+)
 
 # Procesamiento de audio si se graba algo
 if audio_bytes:
-    # Guardar temporalmente
     with NamedTemporaryFile(delete=False, suffix=".wav") as f:
         f.write(audio_bytes)
         temp_path = f.name
 
-    # Transcribir
     transcript = speech_to_text(temp_path)
     os.remove(temp_path)
 
