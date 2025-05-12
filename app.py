@@ -10,7 +10,7 @@ float_init()
 
 # Estado de sesión
 if "messages" not in st.session_state:
-    st.session_state.messages = [{"role": "assistant", "content": "Hola, soy el tutor IA de la CUN. ¿En qué puedo ayudarte?"}]
+    st.session_state.messages = [{"role": "assistant", "content": "Hola, soy tu tutor. ¿En qué puedo ayudarte?"}]
 
 # Estilos personalizados
 st.markdown("""
@@ -23,17 +23,6 @@ st.markdown("""
         text-align: center;
         color: white;
     }
-    .chat-bubble {
-        background: linear-gradient(to right, #0F69F5, #3435A1);
-        color: white;
-        font-size: 18px;
-        padding: 16px 24px;
-        border-radius: 24px;
-        display: inline-block;
-        margin-top: 24px;
-        max-width: 600px;
-        box-shadow: 0 0 12px rgba(0, 137, 255, 0.4);
-    }
     .circle {
         margin: 30px auto 10px;
         width: 120px;
@@ -42,14 +31,48 @@ st.markdown("""
         border-radius: 50%;
         animation: pulse 2s infinite;
     }
+    .chat-container {
+        display: flex;
+        flex-direction: column;
+        max-width: 800px;
+        margin: 20px auto;
+    }
+    .bubble-user {
+        align-self: flex-end;
+        background-color: #1f2937;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 20px;
+        margin: 6px 0;
+        max-width: 80%;
+        font-size: 16px;
+    }
+    .bubble-assistant {
+        align-self: flex-start;
+        background: linear-gradient(to right, #0F69F5, #3435A1);
+        color: white;
+        padding: 12px 20px;
+        border-radius: 20px;
+        margin: 6px 0;
+        max-width: 80%;
+        font-size: 16px;
+    }
     </style>
 """, unsafe_allow_html=True)
 
-# Títulos
+# Encabezado
 st.markdown("<h1>Chatea con el Tutor de voz</h1>", unsafe_allow_html=True)
 st.markdown("<h3>Para estudiantes de la CUN</h3>", unsafe_allow_html=True)
-st.markdown("<div class='chat-bubble'>Hola, soy el tutor IA de la CUN. ¿En qué puedo ayudarte?</div>", unsafe_allow_html=True)
 st.markdown("<div class='circle'></div>", unsafe_allow_html=True)
+
+# Contenedor de mensajes previos
+st.markdown("<div class='chat-container'>", unsafe_allow_html=True)
+for msg in st.session_state.messages:
+    if msg["role"] == "assistant":
+        st.markdown(f"<div class='bubble-assistant'>{msg['content']}</div>", unsafe_allow_html=True)
+    elif msg["role"] == "user":
+        st.markdown(f"<div class='bubble-user'>{msg['content']}</div>", unsafe_allow_html=True)
+st.markdown("</div>", unsafe_allow_html=True)
 
 # Botón de grabación de audio con texto personalizado
 audio_bytes = audio_recorder(
@@ -69,7 +92,6 @@ if audio_bytes:
 
     if transcript:
         st.session_state.messages.append({"role": "user", "content": transcript})
-        st.markdown(f"<div class='chat-bubble'>{transcript}</div>", unsafe_allow_html=True)
 
         with st.spinner("Pensando 🤔..."):
             response = get_answer(st.session_state.messages)
@@ -79,11 +101,10 @@ if audio_bytes:
             autoplay_audio(audio_file)
             os.remove(audio_file)
 
-        st.markdown(f"<div class='chat-bubble'>{response}</div>", unsafe_allow_html=True)
         st.session_state.messages.append({"role": "assistant", "content": response})
     else:
-        st.markdown(
-            "<div class='chat-bubble' style='background-color: #F54242;'>"
-            "⚠️ El audio no pudo ser procesado. Por favor, intenta grabar de nuevo."
-            "</div>", unsafe_allow_html=True
-        )
+        st.session_state.messages.append({
+            "role": "assistant",
+            "content": "⚠️ El audio no pudo ser procesado. Por favor, intenta grabar de nuevo."
+        })
+
