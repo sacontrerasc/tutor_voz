@@ -4,6 +4,8 @@ from PIL import Image
 from streamlit_webrtc import webrtc_streamer, WebRtcMode, ClientSettings
 from utils import get_answer, text_to_speech, autoplay_audio, speech_to_text
 from streamlit_float import float_init
+import wave
+from tempfile import NamedTemporaryFile
 
 # Inicializa efectos visuales
 float_init()
@@ -62,10 +64,21 @@ webrtc_ctx = webrtc_streamer(
     )
 )
 
+# Función para validar duración del audio
+def is_audio_long_enough(path, min_duration=0.1):
+    try:
+        with wave.open(path, 'rb') as wf:
+            frames = wf.getnframes()
+            rate = wf.getframerate()
+            duration = frames / float(rate)
+            return duration >= min_duration
+    except Exception as e:
+        return False
+
+# Procesamiento del audio si está disponible
 if webrtc_ctx.audio_receiver:
     import av
     import numpy as np
-    from tempfile import NamedTemporaryFile
 
     audio_frames = webrtc_ctx.audio_receiver.get_frames(timeout=1)
     if audio_frames:
@@ -74,20 +87,28 @@ if webrtc_ctx.audio_receiver:
             f.write(audio.tobytes())
             temp_path = f.name
 
-        transcript = speech_to_text(temp_path)
-        os.remove(temp_path)
+        if is_audio_long_enough(temp_path):
+            transcript = speech_to_text(temp_path)
+            os.remove(temp_path)
 
-        if transcript:
-            st.session_state.messages.append({"role": "user", "content": transcript})
-            st.markdown(f"<div class='chat-bubble'>{transcript}</div>", unsafe_allow_html=True)
+            if transcript:
+                st.session_state.messages.append({"role": "user", "content": transcript})
+                st.markdown(f"<div class='chat-bubble'>{transcript}</div>", unsafe_allow_html=True)
 
-            with st.spinner("Pensando 🤔..."):
-                response = get_answer(st.session_state.messages)
+                with st.spinner("Pensando 🤔..."):
+                    response = get_answer(st.session_state.messages)
 
-            with st.spinner("Generando audio..."):
-                audio_file = text_to_speech(response)
-                autoplay_audio(audio_file)
-                os.remove(audio_file)
+                with st.spinner("Generando audio..."):
+                    audio_file = text_to_speech(response)
+                    autoplay_audio(audio_file)
+                    os.remove(audio_file)
 
-            st.markdown(f"<div class='chat-bubble'>{response}</div>", unsafe_allow_html=True)
-            st.session_state.messages.append({"role": "assistant", "content": response})
+                st.markdown(f"<div class='chat-bubble'>{response}</div>", unsafe_allow_html=True)
+                st.session_state.messages.append({"role": "assistant", "content": response})
+        else:
+            os.remove(temp_path)
+            st.markdown(
+                "<div class='chat-bubble' style='background-color: #F54242;'>"
+                "⚠️ El audio grabado es demasiado corto. Por favor, habla al menos 0.1 segundos."
+                "</div>", unsafe_allow_html=True
+            )
