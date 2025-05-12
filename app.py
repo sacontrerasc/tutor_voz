@@ -42,9 +42,9 @@ st.markdown("""
         background-color: #1f2937;
         color: white;
         padding: 12px 20px;
-        border-radius: 20px;
+        border-radius: 20px 20px 0px 20px;
         margin: 6px 0;
-        max-width: 80%;
+        max-width: 65%;
         font-size: 16px;
     }
     .bubble-assistant {
@@ -52,7 +52,7 @@ st.markdown("""
         background: linear-gradient(to right, #0F69F5, #3435A1);
         color: white;
         padding: 12px 20px;
-        border-radius: 20px;
+        border-radius: 20px 20px 20px 0px;
         margin: 6px 0;
         max-width: 80%;
         font-size: 16px;
@@ -67,7 +67,7 @@ st.markdown("<div class='circle'></div>", unsafe_allow_html=True)
 
 # Botón de grabación
 audio_bytes = audio_recorder(
-    text="🎙️ Pregunta algo", 
+    text="Pregunta algo", 
     pause_threshold=1.0, 
     sample_rate=44100
 )
@@ -82,24 +82,35 @@ if audio_bytes:
     os.remove(temp_path)
 
     if transcript:
+        # Agrega la pregunta del usuario
         st.session_state.messages.append({"role": "user", "content": transcript})
 
-        with st.spinner("Pensando 🤔..."):
-            response = get_answer(st.session_state.messages)
+        # Agrega temporalmente "Pensando..." como respuesta provisional
+        st.session_state.messages.append({"role": "assistant", "content": "🤔 Pensando..."})
 
-        with st.spinner("Generando audio..."):
-            audio_file = text_to_speech(response)
-            autoplay_audio(audio_file)
-            os.remove(audio_file)
+        # Redibuja inmediatamente para mostrar la pregunta y spinner
+        st.experimental_rerun()
 
-        st.session_state.messages.append({"role": "assistant", "content": response})
-    else:
-        st.session_state.messages.append({
-            "role": "assistant",
-            "content": "⚠️ El audio no pudo ser procesado. Por favor, intenta grabar de nuevo."
-        })
+# Si hay un mensaje de "Pensando...", lo reemplaza con la respuesta real
+if len(st.session_state.messages) >= 2 and st.session_state.messages[-1]["content"] == "🤔 Pensando...":
+    # Obtener contexto hasta antes del "Pensando..."
+    context_messages = st.session_state.messages[:-1]
 
-# Visualización de la conversación (al final)
+    # Generar respuesta
+    respuesta = get_answer(context_messages)
+
+    # Reemplazar el último mensaje ("Pensando...") con la respuesta real
+    st.session_state.messages[-1]["content"] = respuesta
+
+    # Reproducir audio
+    audio_file = text_to_speech(respuesta)
+    autoplay_audio(audio_file)
+    os.remove(audio_file)
+
+    # Redibujar
+    st.experimental_rerun()
+
+# Mostrar los mensajes tipo chat
 st.markdown("<div class='chat-container'>", unsafe_allow_html=True)
 for msg in st.session_state.messages:
     clase = "bubble-user" if msg["role"] == "user" else "bubble-assistant"
