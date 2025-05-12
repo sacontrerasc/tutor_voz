@@ -12,9 +12,6 @@ float_init()
 if "messages" not in st.session_state:
     st.session_state.messages = [{"role": "assistant", "content": "Hola, soy tu tutor. ¿En qué puedo ayudarte?"}]
 
-if "pending_transcript" not in st.session_state:
-    st.session_state.pending_transcript = None
-
 # Estilos personalizados
 st.markdown("""
     <style>
@@ -45,9 +42,9 @@ st.markdown("""
         background-color: #1f2937;
         color: white;
         padding: 12px 20px;
-        border-radius: 20px 20px 0px 20px;
+        border-radius: 20px;
         margin: 6px 0;
-        max-width: 65%;
+        max-width: 70%;
         font-size: 16px;
     }
     .bubble-assistant {
@@ -55,9 +52,9 @@ st.markdown("""
         background: linear-gradient(to right, #0F69F5, #3435A1);
         color: white;
         padding: 12px 20px;
-        border-radius: 20px 20px 20px 0px;
+        border-radius: 20px;
         margin: 6px 0;
-        max-width: 80%;
+        max-width: 70%;
         font-size: 16px;
     }
     </style>
@@ -70,8 +67,8 @@ st.markdown("<div class='circle'></div>", unsafe_allow_html=True)
 
 # Botón de grabación
 audio_bytes = audio_recorder(
-    text="🎙️ Pregunta algo", 
-    pause_threshold=1.0, 
+    text="🎙️ Pregunta algo",
+    pause_threshold=1.0,
     sample_rate=44100
 )
 
@@ -85,28 +82,27 @@ if audio_bytes:
     os.remove(temp_path)
 
     if transcript:
-        # Guardamos el transcript y redireccionamos
-        st.session_state.pending_transcript = transcript
-        st.experimental_rerun()
+        # Mostrar pregunta del usuario inmediatamente
+        st.session_state.messages.append({"role": "user", "content": transcript})
 
-# Si hay un transcript pendiente
-if st.session_state.pending_transcript:
-    user_question = st.session_state.pending_transcript
-    st.session_state.messages.append({"role": "user", "content": user_question})
+        # Mostrar chat actualizado (con pregunta)
+        st.markdown("<div class='chat-container'>", unsafe_allow_html=True)
+        for msg in st.session_state.messages:
+            clase = "bubble-user" if msg["role"] == "user" else "bubble-assistant"
+            st.markdown(f"<div class='{clase}'>{msg['content']}</div>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
 
-    with st.spinner("Pensando 🤔..."):
-        answer = get_answer(st.session_state.messages)
+        with st.spinner("Pensando 🤔..."):
+            response = get_answer(st.session_state.messages)
 
-    with st.spinner("Generando audio..."):
-        audio_file = text_to_speech(answer)
-        autoplay_audio(audio_file)
-        os.remove(audio_file)
+        with st.spinner("Generando audio..."):
+            audio_file = text_to_speech(response)
+            autoplay_audio(audio_file)
+            os.remove(audio_file)
 
-    st.session_state.messages.append({"role": "assistant", "content": answer})
-    st.session_state.pending_transcript = None
-    st.experimental_rerun()
+        st.session_state.messages.append({"role": "assistant", "content": response})
 
-# Mostrar los mensajes tipo chat
+# Visualización del historial completo
 st.markdown("<div class='chat-container'>", unsafe_allow_html=True)
 for msg in st.session_state.messages:
     clase = "bubble-user" if msg["role"] == "user" else "bubble-assistant"
