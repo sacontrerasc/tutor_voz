@@ -12,6 +12,9 @@ float_init()
 if "messages" not in st.session_state:
     st.session_state.messages = [{"role": "assistant", "content": "Hola, soy tu tutor. ¿En qué puedo ayudarte?"}]
 
+if "pending_transcript" not in st.session_state:
+    st.session_state.pending_transcript = None
+
 # Estilos personalizados
 st.markdown("""
     <style>
@@ -67,7 +70,7 @@ st.markdown("<div class='circle'></div>", unsafe_allow_html=True)
 
 # Botón de grabación
 audio_bytes = audio_recorder(
-    text="Pregunta algo", 
+    text="🎙️ Pregunta algo", 
     pause_threshold=1.0, 
     sample_rate=44100
 )
@@ -82,32 +85,25 @@ if audio_bytes:
     os.remove(temp_path)
 
     if transcript:
-        # Agrega la pregunta del usuario
-        st.session_state.messages.append({"role": "user", "content": transcript})
-
-        # Agrega temporalmente "Pensando..." como respuesta provisional
-        st.session_state.messages.append({"role": "assistant", "content": "🤔 Pensando..."})
-
-        # Redibuja inmediatamente para mostrar la pregunta y spinner
+        # Guardamos el transcript y redireccionamos
+        st.session_state.pending_transcript = transcript
         st.experimental_rerun()
 
-# Si hay un mensaje de "Pensando...", lo reemplaza con la respuesta real
-if len(st.session_state.messages) >= 2 and st.session_state.messages[-1]["content"] == "🤔 Pensando...":
-    # Obtener contexto hasta antes del "Pensando..."
-    context_messages = st.session_state.messages[:-1]
+# Si hay un transcript pendiente
+if st.session_state.pending_transcript:
+    user_question = st.session_state.pending_transcript
+    st.session_state.messages.append({"role": "user", "content": user_question})
 
-    # Generar respuesta
-    respuesta = get_answer(context_messages)
+    with st.spinner("Pensando 🤔..."):
+        answer = get_answer(st.session_state.messages)
 
-    # Reemplazar el último mensaje ("Pensando...") con la respuesta real
-    st.session_state.messages[-1]["content"] = respuesta
+    with st.spinner("Generando audio..."):
+        audio_file = text_to_speech(answer)
+        autoplay_audio(audio_file)
+        os.remove(audio_file)
 
-    # Reproducir audio
-    audio_file = text_to_speech(respuesta)
-    autoplay_audio(audio_file)
-    os.remove(audio_file)
-
-    # Redibujar
+    st.session_state.messages.append({"role": "assistant", "content": answer})
+    st.session_state.pending_transcript = None
     st.experimental_rerun()
 
 # Mostrar los mensajes tipo chat
